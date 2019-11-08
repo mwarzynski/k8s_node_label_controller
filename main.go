@@ -19,6 +19,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"strings"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -36,17 +37,53 @@ const (
 	ControllerName = "node-label-controller"
 )
 
+type NodeProcessor interface {
+	Name() string
+	ProcessNode(node *v1.Node) error
+}
+
+type ContainerLinuxLabeler struct{}
+
+func (nl *ContainerLinuxLabeler) Name() string {
+	return "container-linux-labeler"
+}
+
+func (nl *ContainerLinuxLabeler) ProcessNode(node *v1.Node) error {
+	if node == nil {
+		return nil
+	}
+
+	if !strings.Contains(node.Status.NodeInfo.OSImage, "Container Linux by CoreOS") ||
+		!strings.Contains(node.Status.NodeInfo.KernelVersion, "coreos") {
+		return nil
+	}
+
+	// Note that you also have to check the uid if you have a local controlled resource, which
+	// is dependent on the actual instance, to detect that a Node was recreated with the same name
+	fmt.Printf("ContainerLinux node: %s\n", node.GetName())
+
+	return nil
+}
+
 type Controller struct {
 	indexer  cache.Indexer
 	queue    workqueue.RateLimitingInterface
 	informer cache.Controller
+
+	nodeProcessors []NodeProcessor
 }
 
-func NewController(queue workqueue.RateLimitingInterface, indexer cache.Indexer, informer cache.Controller) *Controller {
+func NewController(
+	queue workqueue.RateLimitingInterface,
+	indexer cache.Indexer,
+	informer cache.Controller,
+	nodeProcessors []NodeProcessor,
+) *Controller {
 	return &Controller{
-		informer: informer,
-		indexer:  indexer,
-		queue:    queue,
+		informer:       informer,
+		indexer:        indexer,
+		queue:          queue,
+		nodeProcessors: nodeProcessors,
 	}
 }
 
@@ -78,7 +115,6 @@ func (c *Controller) process(key string) error {
 		return err
 	}
 	if !exists {
-		klog.Infof("Node %s does not exist anymore\n", key)
 		return nil
 	}
 
@@ -88,10 +124,12 @@ func (c *Controller) process(key string) error {
 		return nil
 	}
 
-	// Note that you also have to check the uid if you have a local controlled resource, which
-	// is dependent on the actual instance, to detect that a Node was recreated with the same name
-	fmt.Printf("Sync/Add/Update for Node %s: Labels: %+v; Annotations: %v\n",
-		node.GetName(), node.GetLabels(), node.GetAnnotations())
+	for _, p := range c.nodeProcessors {
+		if err := p.ProcessNode(node); err != nil {
+			return fmt.Errorf("%s: %w", p.Name(), err)
+		}
+	}
+
 	return nil
 }
 
@@ -118,7 +156,6 @@ func (c *Controller) handleErr(err error, key interface{}) {
 	c.queue.Forget(key)
 	// Report to an external entity that, even after several retries, we could not successfully process this key
 	runtime.HandleError(err)
-	klog.Infof("Dropping node %q out of the queue: %v", key, err)
 }
 
 func (c *Controller) Run(threadiness int, stopCh chan struct{}) {
@@ -196,7 +233,9 @@ func main() {
 		},
 	}, cache.Indexers{})
 
-	controller := NewController(queue, indexer, informer)
+	containerLinuxNodeLabeler := &ContainerLinuxLabeler{}
+
+	controller := NewController(queue, indexer, informer, []NodeProcessor{containerLinuxNodeLabeler})
 
 	// Now let's start the controller
 	stop := make(chan struct{})

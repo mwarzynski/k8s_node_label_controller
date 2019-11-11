@@ -19,7 +19,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"strings"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -31,53 +30,28 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
+
+	"github.com/mwarzynski/loodse-k8s-node-label-controller/node"
+	containerLinux "github.com/mwarzynski/loodse-k8s-node-label-controller/node/container_linux"
 )
 
 const (
 	ControllerName = "node-label-controller"
 )
 
-type NodeProcessor interface {
-	Name() string
-	ProcessNode(node *v1.Node) error
-}
-
-type ContainerLinuxLabeler struct{}
-
-func (nl *ContainerLinuxLabeler) Name() string {
-	return "container-linux-labeler"
-}
-
-func (nl *ContainerLinuxLabeler) ProcessNode(node *v1.Node) error {
-	if node == nil {
-		return nil
-	}
-
-	if !strings.Contains(node.Status.NodeInfo.OSImage, "Container Linux by CoreOS") ||
-		!strings.Contains(node.Status.NodeInfo.KernelVersion, "coreos") {
-		return nil
-	}
-
-	// Note that you also have to check the uid if you have a local controlled resource, which
-	// is dependent on the actual instance, to detect that a Node was recreated with the same name
-	fmt.Printf("ContainerLinux node: %s\n", node.GetName())
-
-	return nil
-}
-
 type Controller struct {
 	indexer  cache.Indexer
 	queue    workqueue.RateLimitingInterface
 	informer cache.Controller
 
-	nodeProcessors []NodeProcessor
+	nodeProcessors []node.Processor
 }
 
 func NewController(
 	queue workqueue.RateLimitingInterface,
 	indexer cache.Indexer,
 	informer cache.Controller,
-	nodeProcessors []NodeProcessor,
+	nodeProcessors []node.Processor,
 ) *Controller {
 	return &Controller{
 		informer:       informer,
@@ -203,6 +177,8 @@ func main() {
 		klog.Fatal(err)
 	}
 
+	nodesClient := clientset.CoreV1().Nodes()
+
 	nodesWatcher := cache.NewListWatchFromClient(clientset.CoreV1().RESTClient(), "nodes", v1.NamespaceAll, fields.Everything())
 	queue := workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
 
@@ -233,9 +209,7 @@ func main() {
 		},
 	}, cache.Indexers{})
 
-	containerLinuxNodeLabeler := &ContainerLinuxLabeler{}
-
-	controller := NewController(queue, indexer, informer, []NodeProcessor{containerLinuxNodeLabeler})
+	controller := NewController(queue, indexer, informer, []node.Processor{containerLinux.NewLabeler(nodesClient)})
 
 	// Now let's start the controller
 	stop := make(chan struct{})

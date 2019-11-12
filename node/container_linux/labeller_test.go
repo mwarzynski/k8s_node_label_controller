@@ -65,7 +65,7 @@ func TestLabeler(t *testing.T) {
 			}
 
 			// Create (Container Linux) Labeler component.
-			labeler := containerLinux.NewLabeler(updater)
+			labeler := containerLinux.NewLabeller(updater)
 			if labeler.Name() == "" {
 				t.Errorf("invalid name")
 			}

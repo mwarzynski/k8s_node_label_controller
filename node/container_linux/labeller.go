@@ -14,21 +14,21 @@ const (
 	LabelUsesContainerLinuxValue = "true"
 )
 
-type Labeler struct {
+type Labeller struct {
 	updater node.Updater
 }
 
-func NewLabeler(updater node.Updater) *Labeler {
-	return &Labeler{
+func NewLabeller(updater node.Updater) *Labeller {
+	return &Labeller{
 		updater: updater,
 	}
 }
 
-func (l *Labeler) Name() string {
-	return "container-linux-node-labeler"
+func (l *Labeller) Name() string {
+	return "container-linux-node-labeller"
 }
 
-func (l *Labeler) ProcessNode(node *v1.Node) error {
+func (l *Labeller) ProcessNode(node *v1.Node) error {
 	if node == nil {
 		return nil
 	}

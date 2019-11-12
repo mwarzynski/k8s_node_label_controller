@@ -209,7 +209,7 @@ func main() {
 		},
 	}, cache.Indexers{})
 
-	controller := NewController(queue, indexer, informer, []node.Processor{containerLinux.NewLabeler(nodesClient)})
+	controller := NewController(queue, indexer, informer, []node.Processor{containerLinux.NewLabeller(nodesClient)})
 
 	// Now let's start the controller
 	stop := make(chan struct{})

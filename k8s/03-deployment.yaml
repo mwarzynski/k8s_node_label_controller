@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: container-linux
+  namespace: node-labels
+  labels:
+    app: container-linux
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: container-linux
+  template:
+    metadata:
+      labels:
+        app: container-linux
+    spec:
+      serviceAccountName: node-manager
+      containers:
+      - name: container-linux
+        image: mwarzynski/container-linux-node-labeller:0.0.1

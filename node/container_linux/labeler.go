@@ -40,6 +40,8 @@ func (l *Labeler) ProcessNode(node *v1.Node) error {
 		return nil
 	}
 
+	// Copy Node as not to operate on the cached one (and pollute the data).
+	node = node.DeepCopy()
 	if isContainerLinuxNode {
 		node.Labels[LabelUsesContainerLinuxKey] = LabelUsesContainerLinuxValue
 	} else {

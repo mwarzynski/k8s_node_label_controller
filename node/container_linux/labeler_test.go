@@ -53,12 +53,14 @@ func TestLabeler(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			var node *v1.Node
 			// Mock Node Updater to check if update action was executed.
 			nodeWasUpdated := false
 			updater := &mockUpdater{
-				UpdateFunc: func(node *v1.Node) (*v1.Node, error) {
+				UpdateFunc: func(updatedNode *v1.Node) (*v1.Node, error) {
 					nodeWasUpdated = true
-					return node, nil
+					node = updatedNode
+					return updatedNode, nil
 				},
 			}
 
@@ -69,7 +71,7 @@ func TestLabeler(t *testing.T) {
 			}
 
 			// Prepare and Process the Node.
-			node := prepareNode(test.nodeLabels, test.nodeOS)
+			node = prepareNode(test.nodeLabels, test.nodeOS)
 			err := labeler.ProcessNode(node)
 			if err != nil {
 				t.Fatal(err)

@@ -31,8 +31,8 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
 
-	"github.com/mwarzynski/loodse-k8s-node-label-controller/node"
-	containerLinux "github.com/mwarzynski/loodse-k8s-node-label-controller/node/container_linux"
+	"github.com/mwarzynski/k8s-node-label-controller/node"
+	containerLinux "github.com/mwarzynski/k8s-node-label-controller/node/container_linux"
 )
 
 const (

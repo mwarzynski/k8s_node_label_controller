@@ -1,4 +1,4 @@
-module github.com/mwarzynski/loodse-k8s-node-label-controller
+module github.com/mwarzynski/k8s-node-label-controller
 
 go 1.13
 

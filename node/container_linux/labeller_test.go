@@ -6,7 +6,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	containerLinux "github.com/mwarzynski/loodse-k8s-node-label-controller/node/container_linux"
+	containerLinux "github.com/mwarzynski/k8s-node-label-controller/node/container_linux"
 )
 
 func TestLabeler(t *testing.T) {

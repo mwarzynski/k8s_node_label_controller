@@ -6,7 +6,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 
-	"github.com/mwarzynski/loodse-k8s-node-label-controller/node"
+	"github.com/mwarzynski/k8s-node-label-controller/node"
 )
 
 const (

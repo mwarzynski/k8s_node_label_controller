@@ -3,5 +3,5 @@
 
 .bin
 
-loodse-k8s-node-label-controller
+k8s-node-label-controller
 
